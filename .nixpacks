@@ -8,4 +8,4 @@ cmds = ["echo 'PHP 8.1 installed'"]
 cmds = ["echo 'Building PHP application'"]
 
 [start]
-cmd = "php -S 0.0.0.0:$PORT api/index.php" 
+cmd = "php -S 0.0.0.0:$PORT index.php" 
