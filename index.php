@@ -1,13 +1,13 @@
 <?php
-// Router for Railway deployment
-$requestUri = $_SERVER['REQUEST_URI'];
-$requestMethod = $_SERVER['REQUEST_METHOD'];
+// Force routing for Railway deployment
+if (!isset($_SERVER['PATH_INFO']) && isset($_SERVER['REQUEST_URI'])) {
+    $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    $_SERVER['PATH_INFO'] = $path;
+}
 
-// Remove query string from URI
-$path = parse_url($requestUri, PHP_URL_PATH);
-
-// Log for debugging (opcional)
-error_log("Request: $requestMethod $path");
+// Debug logging (remover depois)
+error_log("REQUEST_URI: " . $_SERVER['REQUEST_URI']);
+error_log("REQUEST_METHOD: " . $_SERVER['REQUEST_METHOD']);
 
 // EBANX API - Compliant with automated tests
 header('Content-Type: application/json');
@@ -85,10 +85,15 @@ class AccountManager {
 }
 
 $method = $_SERVER['REQUEST_METHOD'];
-$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$path = $_SERVER['PATH_INFO'] ?? parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
 // Remove trailing slash
 $path = rtrim($path, '/');
+
+// Se path estiver vazio, use a raiz
+if (empty($path)) {
+    $path = '/';
+}
 
 try {
     // Reset endpoint for tests
