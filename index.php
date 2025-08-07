@@ -1,4 +1,15 @@
 <?php
+// Router for Railway deployment
+$requestUri = $_SERVER['REQUEST_URI'];
+$requestMethod = $_SERVER['REQUEST_METHOD'];
+
+// Remove query string from URI
+$path = parse_url($requestUri, PHP_URL_PATH);
+
+// Log for debugging (opcional)
+error_log("Request: $requestMethod $path");
+
+// EBANX API - Compliant with automated tests
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
@@ -14,8 +25,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 class AccountManager {
     private static $accounts = [];
     
+    public static function reset() {
+        self::$accounts = [];
+    }
+    
+    public static function accountExists($accountId) {
+        return isset(self::$accounts[$accountId]);
+    }
+    
     public static function getBalance($accountId) {
-        return isset(self::$accounts[$accountId]) ? self::$accounts[$accountId] : 0;
+        if (!isset(self::$accounts[$accountId])) {
+            return null; // Account doesn't exist
+        }
+        return self::$accounts[$accountId];
     }
     
     public static function deposit($accountId, $amount) {
@@ -28,7 +50,7 @@ class AccountManager {
     
     public static function withdraw($accountId, $amount) {
         if (!isset(self::$accounts[$accountId])) {
-            self::$accounts[$accountId] = 0;
+            return null; // Account doesn't exist
         }
         
         if (self::$accounts[$accountId] < $amount) {
@@ -41,14 +63,15 @@ class AccountManager {
     
     public static function transfer($fromAccountId, $toAccountId, $amount) {
         if (!isset(self::$accounts[$fromAccountId])) {
-            self::$accounts[$fromAccountId] = 0;
-        }
-        if (!isset(self::$accounts[$toAccountId])) {
-            self::$accounts[$toAccountId] = 0;
+            return null; // Origin account doesn't exist
         }
         
         if (self::$accounts[$fromAccountId] < $amount) {
             return false; // Insufficient funds
+        }
+        
+        if (!isset(self::$accounts[$toAccountId])) {
+            self::$accounts[$toAccountId] = 0;
         }
         
         self::$accounts[$fromAccountId] -= $amount;
@@ -68,6 +91,15 @@ $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $path = rtrim($path, '/');
 
 try {
+    // Reset endpoint for tests
+    if ($method === 'POST' && $path === '/reset') {
+        AccountManager::reset();
+        http_response_code(200);
+        echo json_encode(['message' => 'OK']);
+        exit();
+    }
+    
+    // Get balance endpoint
     if ($method === 'GET' && $path === '/balance') {
         $accountId = $_GET['account_id'] ?? null;
         
@@ -78,9 +110,21 @@ try {
         }
         
         $balance = AccountManager::getBalance($accountId);
-        echo json_encode(['balance' => $balance]);
         
-    } elseif ($method === 'POST' && $path === '/event') {
+        if ($balance === null) {
+            // Account doesn't exist - return 404 with 0
+            http_response_code(404);
+            echo '0';
+            exit();
+        }
+        
+        http_response_code(200);
+        echo (string)$balance;
+        exit();
+    }
+    
+    // Event endpoint
+    if ($method === 'POST' && $path === '/event') {
         $input = json_decode(file_get_contents('php://input'), true);
         
         if (!$input) {
@@ -109,6 +153,7 @@ try {
                 }
                 
                 $balance = AccountManager::deposit($destination, $amount);
+                http_response_code(201);
                 echo json_encode(['destination' => ['id' => $destination, 'balance' => $balance]]);
                 break;
                 
@@ -120,12 +165,21 @@ try {
                 }
                 
                 $balance = AccountManager::withdraw($origin, $amount);
+                
+                if ($balance === null) {
+                    // Account doesn't exist
+                    http_response_code(404);
+                    echo '0';
+                    exit();
+                }
+                
                 if ($balance === false) {
                     http_response_code(400);
                     echo json_encode(['error' => 'Insufficient funds']);
                     exit();
                 }
                 
+                http_response_code(201);
                 echo json_encode(['origin' => ['id' => $origin, 'balance' => $balance]]);
                 break;
                 
@@ -137,12 +191,21 @@ try {
                 }
                 
                 $result = AccountManager::transfer($origin, $destination, $amount);
+                
+                if ($result === null) {
+                    // Origin account doesn't exist
+                    http_response_code(404);
+                    echo '0';
+                    exit();
+                }
+                
                 if ($result === false) {
                     http_response_code(400);
                     echo json_encode(['error' => 'Insufficient funds']);
                     exit();
                 }
                 
+                http_response_code(201);
                 echo json_encode($result);
                 break;
                 
