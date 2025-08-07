@@ -1,0 +1,20 @@
+{
+    "name": "dluiscamargo/api-ebanx",
+    "description": "Simple banking API for EBANX interview process",
+    "type": "project",
+    "require": {
+        "php": ">=7.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Daniel Luís Camargo",
+            "email": "dluiscamargo@github.com"
+        }
+    ],
+    "minimum-stability": "stable"
+} 
