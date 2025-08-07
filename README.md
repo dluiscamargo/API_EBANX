@@ -51,16 +51,53 @@ Suporta três tipos de operações:
 - **Respostas JSON**: Formato padronizado para todos os endpoints
 - **Roteamento limpo**: Configuração via .htaccess para URLs amigáveis
 
-### 🧪 Testes Realizados: sleep 2 && php test_ebanx_improved.php 
+### 🧪 Testes Realizados: 
+
+sleep 2 && php test_ebanx_improved.php 
 
 A API foi testada localmente e está funcionando corretamente:
 - ✅ GET /balance retorna saldo correto
 - ✅ POST /event com deposit funciona
 - ✅ POST /event com withdraw funciona
+
 - ✅ POST /event com transfer funciona
 - ✅ Validação de saldo insuficiente
 - ✅ Validação de parâmetros obrigatórios
 - ✅ Códigos de erro apropriados
+
+### 🧪 Testes Realizados: browser
+http://localhost:8000/balance?account_id=1
+
+railway.com
+https://api-ebanx-daniel.railway.app/
+
+
+### 🧪 Testes Realizados: POSTMAN
+POST: http://localhost:8000/event
+Body->raw->JSON:
+{
+    "type": "deposit",
+    "destination": "10",
+    "amount": 10
+}
+
+Status: 200 OK
+Pretty:
+{
+    "destination": {
+        "id": "10",
+        "balance": 10
+    }
+}
+
+GET: http://localhost:8000/balance?account_id=10
+Status: 200 OK
+Pretty:
+{
+    "balance": 10
+}
+
+
 
 
 1. **Criar repositório no GitHub:**
