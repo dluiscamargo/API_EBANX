@@ -1,6 +1,7 @@
 <?php
-// Test script for EBANX API
-// This script simulates the expected test scenarios
+// Netlify Universal Router
+$path = $_GET['path'] ?? '/';
+$requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 function makeRequest($method, $url, $data = null) {
     $ch = curl_init();
