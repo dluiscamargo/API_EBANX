@@ -128,3 +128,56 @@ Pretty:
 - ✅ **Documentação**: README completo com exemplos
 
 A API está **100% pronta** publicada e testada com os testes automatizados do EBANX! 🚀 
+
+##  **Diagnóstico:**
+
+- **Comando de start incorreto**: `php -S 0.0.0.0:$PORT index.php`
+- **PHP 7.4 sendo usado**: está obsoleto
+- **Problema de diretório**: Railway está tentando escrever onde já existe um diretório
+
+## 🛠️ **Solução: Corrigir a Configuração**
+
+### **1. Corrigir o Start Command:**
+
+O comando de start precisa ser:
+```
+php -S 0.0.0.0:$PORT -t . api/index.php
+```
+
+### **2. Especificar PHP 8.1:**
+
+Crie um arquivo `.nixpacks` com:
+```toml
+[phases.setup]
+nixPkgs = ["php81"]
+```
+
+### **3. Simplificar o `railway.json`:**
+
+Substitua o `railway.json` por:
+```json
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "startCommand": "php -S 0.0.0.0:$PORT -t . api/index.php"
+  }
+}
+```
+
+## 🚀 **Passos:**
+
+1. **Crie/edite o `.nixpacks`**
+2. **Edite o `railway.json`**
+3. **Faça commit e push**
+4. **Aguarde o redeploy**
+
+## ✅ **Estrutura Final:**
+
+- `api/index.php`
+- `.nixpacks` (para PHP 8.1)
+- `railway.json` (com start command correto)
+
+**Aplique essas correções e o deploy no Railway deve funcionar perfeitamente!** 🎯 
