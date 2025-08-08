@@ -1,64 +1,78 @@
 <?php
-// EBANX API with Session-based Persistence
-session_start();
+// EBANX API with In-Memory SQLite Persistence
 header('Content-Type: application/json');
 
-// Netlify Universal Router
-$path = $_GET['path'] ?? '/';
+// Universal routing
+$requestUri = $_SERVER['REQUEST_URI'] ?? '/';
 $requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+$path = parse_url($requestUri, PHP_URL_PATH);
+$path = rtrim($path, '/');
 
 class AccountManager {
+    private static $pdo;
+
+    private static function getDB() {
+        if (self::$pdo) {
+            return self::$pdo;
+        }
+        self::$pdo = new PDO('sqlite::memory:');
+        self::$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        self::$pdo->exec("CREATE TABLE IF NOT EXISTS accounts (id TEXT PRIMARY KEY, balance INTEGER)");
+        return self::$pdo;
+    }
+    
     public static function reset() {
-        $_SESSION['accounts'] = [];
+        $pdo = self::getDB();
+        $pdo->exec("DELETE FROM accounts");
     }
     
     public static function getBalance($accountId) {
-        if (!isset($_SESSION['accounts'][$accountId])) {
-            return null;
-        }
-        return $_SESSION['accounts'][$accountId];
+        $pdo = self::getDB();
+        $stmt = $pdo->prepare("SELECT balance FROM accounts WHERE id = ?");
+        $stmt->execute([$accountId]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result ? $result['balance'] : null;
     }
     
     public static function deposit($accountId, $amount) {
-        if (!isset($_SESSION['accounts'][$accountId])) {
-            $_SESSION['accounts'][$accountId] = 0;
+        $pdo = self::getDB();
+        $balance = self::getBalance($accountId);
+        if ($balance === null) {
+            $stmt = $pdo->prepare("INSERT INTO accounts (id, balance) VALUES (?, ?)");
+            $stmt->execute([$accountId, $amount]);
+            return $amount;
+        } else {
+            $newBalance = $balance + $amount;
+            $stmt = $pdo->prepare("UPDATE accounts SET balance = ? WHERE id = ?");
+            $stmt->execute([$newBalance, $accountId]);
+            return $newBalance;
         }
-        $_SESSION['accounts'][$accountId] += $amount;
-        return $_SESSION['accounts'][$accountId];
     }
     
     public static function withdraw($accountId, $amount) {
-        if (!isset($_SESSION['accounts'][$accountId])) {
-            return null;
-        }
+        $pdo = self::getDB();
+        $balance = self::getBalance($accountId);
+        if ($balance === null) return null;
+        if ($balance < $amount) return false;
         
-        if ($_SESSION['accounts'][$accountId] < $amount) {
-            return false;
-        }
-        
-        $_SESSION['accounts'][$accountId] -= $amount;
-        return $_SESSION['accounts'][$accountId];
+        $newBalance = $balance - $amount;
+        $stmt = $pdo->prepare("UPDATE accounts SET balance = ? WHERE id = ?");
+        $stmt->execute([$newBalance, $accountId]);
+        return $newBalance;
     }
     
     public static function transfer($from, $to, $amount) {
-        if (!isset($_SESSION['accounts'][$from])) {
-            return null;
-        }
+        $pdo = self::getDB();
+        $fromBalance = self::getBalance($from);
+        if ($fromBalance === null) return null;
+        if ($fromBalance < $amount) return false;
         
-        if ($_SESSION['accounts'][$from] < $amount) {
-            return false;
-        }
-        
-        if (!isset($_SESSION['accounts'][$to])) {
-            $_SESSION['accounts'][$to] = 0;
-        }
-        
-        $_SESSION['accounts'][$from] -= $amount;
-        $_SESSION['accounts'][$to] += $amount;
+        self::withdraw($from, $amount);
+        $toBalance = self::deposit($to, $amount);
         
         return [
-            'origin' => ['id' => $from, 'balance' => $_SESSION['accounts'][$from]],
-            'destination' => ['id' => $to, 'balance' => $_SESSION['accounts'][$to]]
+            'origin' => ['id' => $from, 'balance' => self::getBalance($from)],
+            'destination' => ['id' => $to, 'balance' => $toBalance]
         ];
     }
 }
@@ -123,6 +137,6 @@ try {
     
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['error' => 'Internal server error']);
+    echo json_encode(['error' => 'Internal server error', 'message' => $e->getMessage()]);
 }
 ?> 
