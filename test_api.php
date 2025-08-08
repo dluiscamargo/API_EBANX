@@ -1,119 +1,151 @@
 <?php
-// Netlify Universal Router
-$path = $_GET['path'] ?? '/';
-$requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+// EBANX API with File-based Persistence
+header('Content-Type: application/json');
 
-function makeRequest($method, $url, $data = null) {
-    $ch = curl_init();
-    
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-    
-    if ($data) {
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/json',
-            'Content-Length: ' . strlen($data)
-        ]);
+// File for persistence
+$storageFile = '/tmp/accounts.json';
+
+// Universal routing
+$requestUri = $_SERVER['REQUEST_URI'] ?? '/';
+$requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+$path = parse_url($requestUri, PHP_URL_PATH);
+$path = rtrim($path, '/');
+
+class AccountManager {
+    private static function readAccounts($file) {
+        if (!file_exists($file)) {
+            return [];
+        }
+        $json = file_get_contents($file);
+        return json_decode($json, true) ?: [];
+    }
+
+    private static function writeAccounts($file, $accounts) {
+        file_put_contents($file, json_encode($accounts));
+    }
+
+    public static function reset($file) {
+        self::writeAccounts($file, []);
     }
     
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    public static function getBalance($file, $accountId) {
+        $accounts = self::readAccounts($file);
+        if (!isset($accounts[$accountId])) {
+            return null;
+        }
+        return $accounts[$accountId];
+    }
     
-    return [
-        'status' => $httpCode,
-        'body' => $response
-    ];
+    public static function deposit($file, $accountId, $amount) {
+        $accounts = self::readAccounts($file);
+        if (!isset($accounts[$accountId])) {
+            $accounts[$accountId] = 0;
+        }
+        $accounts[$accountId] += $amount;
+        self::writeAccounts($file, $accounts);
+        return $accounts[$accountId];
+    }
+    
+    public static function withdraw($file, $accountId, $amount) {
+        $accounts = self::readAccounts($file);
+        if (!isset($accounts[$accountId])) {
+            return null;
+        }
+        
+        if ($accounts[$accountId] < $amount) {
+            return false;
+        }
+        
+        $accounts[$accountId] -= $amount;
+        self::writeAccounts($file, $accounts);
+        return $accounts[$accountId];
+    }
+    
+    public static function transfer($file, $from, $to, $amount) {
+        $accounts = self::readAccounts($file);
+        if (!isset($accounts[$from])) {
+            return null;
+        }
+        
+        if ($accounts[$from] < $amount) {
+            return false;
+        }
+        
+        if (!isset($accounts[$to])) {
+            $accounts[$to] = 0;
+        }
+        
+        $accounts[$from] -= $amount;
+        $accounts[$to] += $amount;
+        self::writeAccounts($file, $accounts);
+        
+        return [
+            'origin' => ['id' => $from, 'balance' => $accounts[$from]],
+            'destination' => ['id' => $to, 'balance' => $accounts[$to]]
+        ];
+    }
 }
 
-echo "=== EBANX API Test Suite ===\n\n";
-
-// Test 1: Get balance of non-existent account
-echo "Test 1: GET /balance?account_id=100\n";
-$response = makeRequest('GET', 'http://localhost:8000/balance?account_id=100');
-echo "Status: " . $response['status'] . "\n";
-echo "Response: " . $response['body'] . "\n\n";
-
-// Test 2: Deposit to account 100
-echo "Test 2: POST /event (deposit)\n";
-$data = json_encode([
-    'type' => 'deposit',
-    'destination' => '100',
-    'amount' => 10
-]);
-$response = makeRequest('POST', 'http://localhost:8000/event', $data);
-echo "Status: " . $response['status'] . "\n";
-echo "Response: " . $response['body'] . "\n\n";
-
-// Test 3: Get balance of account 100
-echo "Test 3: GET /balance?account_id=100\n";
-$response = makeRequest('GET', 'http://localhost:8000/balance?account_id=100');
-echo "Status: " . $response['status'] . "\n";
-echo "Response: " . $response['body'] . "\n\n";
-
-// Test 4: Withdraw from account 100
-echo "Test 4: POST /event (withdraw)\n";
-$data = json_encode([
-    'type' => 'withdraw',
-    'origin' => '100',
-    'amount' => 5
-]);
-$response = makeRequest('POST', 'http://localhost:8000/event', $data);
-echo "Status: " . $response['status'] . "\n";
-echo "Response: " . $response['body'] . "\n\n";
-
-// Test 5: Get balance of account 100 after withdraw
-echo "Test 5: GET /balance?account_id=100\n";
-$response = makeRequest('GET', 'http://localhost:8000/balance?account_id=100');
-echo "Status: " . $response['status'] . "\n";
-echo "Response: " . $response['body'] . "\n\n";
-
-// Test 6: Transfer from account 100 to account 200
-echo "Test 6: POST /event (transfer)\n";
-$data = json_encode([
-    'type' => 'transfer',
-    'origin' => '100',
-    'destination' => '200',
-    'amount' => 15
-]);
-$response = makeRequest('POST', 'http://localhost:8000/event', $data);
-echo "Status: " . $response['status'] . "\n";
-echo "Response: " . $response['body'] . "\n\n";
-
-// Test 7: Get balance of both accounts after transfer
-echo "Test 7: GET /balance?account_id=100\n";
-$response = makeRequest('GET', 'http://localhost:8000/balance?account_id=100');
-echo "Status: " . $response['status'] . "\n";
-echo "Response: " . $response['body'] . "\n\n";
-
-echo "Test 8: GET /balance?account_id=200\n";
-$response = makeRequest('GET', 'http://localhost:8000/balance?account_id=200');
-echo "Status: " . $response['status'] . "\n";
-echo "Response: " . $response['body'] . "\n\n";
-
-// Test 9: Try to withdraw more than available balance
-echo "Test 9: POST /event (withdraw more than available)\n";
-$data = json_encode([
-    'type' => 'withdraw',
-    'origin' => '100',
-    'amount' => 100
-]);
-$response = makeRequest('POST', 'http://localhost:8000/event', $data);
-echo "Status: " . $response['status'] . "\n";
-echo "Response: " . $response['body'] . "\n\n";
-
-// Test 10: Invalid event type
-echo "Test 10: POST /event (invalid type)\n";
-$data = json_encode([
-    'type' => 'invalid',
-    'destination' => '100',
-    'amount' => 10
-]);
-$response = makeRequest('POST', 'http://localhost:8000/event', $data);
-echo "Status: " . $response['status'] . "\n";
-echo "Response: " . $response['body'] . "\n\n";
-
-echo "=== Test Suite Completed ===\n";
+try {
+    if ($requestMethod === 'POST' && $path === '/reset') {
+        AccountManager::reset($storageFile);
+        http_response_code(200);
+        echo 'OK';
+        exit();
+    }
+    
+    if ($requestMethod === 'GET' && $path === '/balance') {
+        $accountId = $_GET['account_id'] ?? null;
+        $balance = AccountManager::getBalance($storageFile, $accountId);
+        
+        if ($balance === null) {
+            http_response_code(404);
+            echo '0';
+        } else {
+            http_response_code(200);
+            echo (string)$balance;
+        }
+        exit();
+    }
+    
+    if ($requestMethod === 'POST' && $path === '/event') {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $type = $input['type'] ?? '';
+        
+        switch ($type) {
+            case 'deposit':
+                $balance = AccountManager::deposit($storageFile, $input['destination'], $input['amount']);
+                http_response_code(201);
+                echo json_encode(['destination' => ['id' => $input['destination'], 'balance' => $balance]]);
+                break;
+                
+            case 'withdraw':
+                $balance = AccountManager::withdraw($storageFile, $input['origin'], $input['amount']);
+                if ($balance === null) {
+                    http_response_code(404);
+                    echo '0';
+                } else {
+                    http_response_code(201);
+                    echo json_encode(['origin' => ['id' => $input['origin'], 'balance' => $balance]]);
+                }
+                break;
+                
+            case 'transfer':
+                $result = AccountManager::transfer($storageFile, $input['origin'], $input['destination'], $input['amount']);
+                if ($result === null) {
+                    http_response_code(404);
+                    echo '0';
+                } else {
+                    http_response_code(201);
+                    echo json_encode($result);
+                }
+                break;
+        }
+        exit();
+    }
+    
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Internal server error']);
+}
 ?> 
