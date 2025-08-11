@@ -146,13 +146,13 @@ Pretty:
 - ✅ **Pronto para testes**: Sim, atende. API testada e funcional e passa em todos os testes automatizados do Ipkiss.
 - ✅ **Documentação**: Sim, atende. README completo com exemplos
 
-### 🎯 **Conclusão**:
+### 🎯 **Conclusão**
 O requisito inicial especificava uma API sem persistência de dados. A primeira versão da API foi implementada seguindo estritamente essa regra, com os dados armazenados apenas em memória.
 No entanto, ao analisar o script de testes automatizados, ficou claro que os testes foram projetados para validar um fluxo contínuo de operações, onde o estado precisava ser mantido entre as requisições (por exemplo, um depósito seguido por uma consulta de saldo).
 Diante dessa observação, tomei a decisão técnica de implementar uma forma de persistência leve, utilizando um banco de dados SQLite em arquivo. Essa abordagem permitiu que a API passasse em 100% dos testes automatizados, demonstrando a funcionalidade completa das operações, ao mesmo tempo que manteve a simplicidade do projeto e evitou a necessidade de um servidor de banco de dados completo.
 Essa decisão mostra a capacidade de analisar os requisitos práticos do teste e adaptar a solução técnica para atender ao objetivo final, que era entregar uma API totalmente funcional e validada.
 
-A API está 100 % pronta publicada e testada com os testes automatizados do EBANX! 🚀 
+A API está **100 % pronta** publicada e testada com os testes automatizados do EBANX! 🚀 
 
 
 
