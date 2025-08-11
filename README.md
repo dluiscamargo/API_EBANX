@@ -130,11 +130,12 @@ Pretty:
    ```
 3. **Deploy da API:**
    - Via: Replit
-   - URL: https://06430684-058e-43f7-9406-e39d0fa38ef8-00-2y1gkknu0015e.picard.replit.dev/ 
-
+   
 4. **Testar com os testes automatizados do EBANX:**
    - Após o deploy, a API está pronta para os testes automatizados
    - Todos os endpoints retornam respostas no formato esperado
+   - https://ipkiss.pragmazero.com/
+   - URL: https://06430684-058e-43f7-9406-e39d0fa38ef8-00-2y1gkknu0015e.picard.replit.dev/
 
 ### 🎯 Conformidade com Requisitos
 
