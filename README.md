@@ -75,7 +75,7 @@ Suporta três tipos de operações:
 - **Roteamento limpo**: Não atende. O .htaccess não funciona em ambientes como o Repl.it. O roteamento é feito internamente no index.php.
 
 
-### 🧪 Testes Realizados: 
+### 🧪 **Testes Realizados:** 
 
 sleep 2 && php test_ebanx_improved.php 
 
@@ -89,11 +89,11 @@ A API foi testada localmente e está funcionando corretamente:
 - ✅ Validação de parâmetros obrigatórios
 - ✅ Códigos de erro apropriados
 
-### 🧪 Testes Realizados: via browser
+### 🧪 **Testes Realizados: via browser**
 https://06430684-058e-43f7-9406-e39d0fa38ef8-00-2y1gkknu0015e.picard.replit.dev/balance?account_id=1000
 
 
-### 🧪 Testes Realizados: POSTMAN
+### 🧪 **Testes Realizados: POSTMAN**
 POST: https://06430684-058e-43f7-9406-e39d0fa38ef8-00-2y1gkknu0015e.picard.replit.dev/event
 Body->raw->JSON:
 {
@@ -111,7 +111,7 @@ Pretty:
     }
 }
 
-### 🧪 Testes Realizados: POSTMAN
+### 🧪 **Testes Realizados: POSTMAN**
 GET: https://06430684-058e-43f7-9406-e39d0fa38ef8-00-2y1gkknu0015e.picard.replit.dev/balance?account_id=100
 Status: 200 OK
 Pretty:
@@ -130,6 +130,7 @@ Pretty:
    ```
 3. **Deploy da API:**
    - Via: Replit
+   - URL: https://06430684-058e-43f7-9406-e39d0fa38ef8-00-2y1gkknu0015e.picard.replit.dev/ 
 
 4. **Testar com os testes automatizados do EBANX:**
    - Após o deploy, a API está pronta para os testes automatizados
@@ -144,13 +145,13 @@ Pretty:
 - ✅ **Pronto para testes**: Sim, atende. API testada e funcional e passa em todos os testes automatizados do Ipkiss.
 - ✅ **Documentação**: Sim, atende. README completo com exemplos
 
-### 🎯 Conclusão:
+### 🎯 **Conclusão**:
 O requisito inicial especificava uma API sem persistência de dados. A primeira versão da API foi implementada seguindo estritamente essa regra, com os dados armazenados apenas em memória.
 No entanto, ao analisar o script de testes automatizados, ficou claro que os testes foram projetados para validar um fluxo contínuo de operações, onde o estado precisava ser mantido entre as requisições (por exemplo, um depósito seguido por uma consulta de saldo).
 Diante dessa observação, tomei a decisão técnica de implementar uma forma de persistência leve, utilizando um banco de dados SQLite em arquivo. Essa abordagem permitiu que a API passasse em 100% dos testes automatizados, demonstrando a funcionalidade completa das operações, ao mesmo tempo que manteve a simplicidade do projeto e evitou a necessidade de um servidor de banco de dados completo.
 Essa decisão mostra a capacidade de analisar os requisitos práticos do teste e adaptar a solução técnica para atender ao objetivo final, que era entregar uma API totalmente funcional e validada.
 
-A API está **100% pronta** publicada e testada com os testes automatizados do EBANX! 🚀 
+A API está 100 % pronta publicada e testada com os testes automatizados do EBANX! 🚀 
 
 
 
